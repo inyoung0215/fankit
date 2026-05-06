@@ -1,0 +1,52 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: settlement-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/fankit_settlement?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: fankit
+    password: fankit
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false  # Quartz가 트리거 — Boot 자동 실행 비활성화
+  quartz:
+    job-store-type: jdbc
+    jdbc:
+      initialize-schema: always
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+# 정산 배치 — Chunk 100건 단위 처리, 매일 새벽 2시 트리거
+settlement:
+  batch:
+    chunk-size: 100
+  schedule:
+    cron: "0 0 2 * * ?"
+  commission:
+    rate: 0.10  # 크리에이터 수수료 10%

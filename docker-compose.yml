@@ -1,0 +1,142 @@
+services:
+  # ─── 관계형 DB: User, Order, Payment, Settlement, Admin ─────────
+  mysql:
+    image: mysql:8.0
+    container_name: fankit-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: fankit
+      MYSQL_PASSWORD: fankit
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-time-zone=+09:00
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./infra/mysql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ─── Document DB: Goods (유연한 굿즈 옵션 스키마) ────────────────
+  mongodb:
+    image: mongo:7.0
+    container_name: fankit-mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: fankit
+      MONGO_INITDB_ROOT_PASSWORD: fankit
+      MONGO_INITDB_DATABASE: fankit_goods
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: [ "CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ─── 캐시·세션·Redisson 분산 락 ────────────────────────────────
+  redis:
+    image: redis:7.2-alpine
+    container_name: fankit-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # ─── Kafka (이벤트 버스) — KRaft 대신 ZK 단일 노드로 단순화 ─────
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: fankit-zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: fankit-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      # 외부(localhost)와 컨테이너 내부 양쪽 모두 접근 가능하도록 두 리스너 분리
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
+  # ─── Elasticsearch (Nori 한글 형태소 plugin 포함) ──────────────
+  elasticsearch:
+    build:
+      context: ./infra/elasticsearch
+    container_name: fankit-elasticsearch
+    ports:
+      - "9200:9200"
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: fankit-kibana
+    depends_on:
+      - elasticsearch
+    ports:
+      - "5601:5601"
+    environment:
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+
+  # ─── 모니터링 ────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.2
+    container_name: fankit-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infra/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: fankit-grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ./infra/grafana/provisioning:/etc/grafana/provisioning
+
+volumes:
+  mysql-data:
+  mongo-data:
+  redis-data:
+  es-data:
+  prometheus-data:
+  grafana-data:

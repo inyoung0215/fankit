@@ -1,0 +1,31 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: goods-service
+  data:
+    mongodb:
+      uri: mongodb://fankit:fankit@localhost:27017/fankit_goods?authSource=admin
+    redis:
+      host: localhost
+      port: 6379
+    elasticsearch:
+      uris: http://localhost:9200
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+# AWS S3 — 굿즈 이미지 Pre-signed URL
+aws:
+  s3:
+    bucket: ${AWS_S3_BUCKET:fankit-goods-dev}
+    region: ${AWS_REGION:ap-northeast-2}

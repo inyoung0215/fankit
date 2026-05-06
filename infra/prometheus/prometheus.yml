@@ -1,0 +1,35 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+# Spring Boot Actuator → /actuator/prometheus
+# 호스트에서 띄운 서비스를 컨테이너 안에서 부르려면 host.docker.internal (Mac/Win 기본)
+scrape_configs:
+  - job_name: 'gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8080' ]
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8081' ]
+  - job_name: 'goods-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8082' ]
+  - job_name: 'order-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8083' ]
+  - job_name: 'payment-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8084' ]
+  - job_name: 'settlement-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8085' ]
+  - job_name: 'admin-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: [ 'host.docker.internal:8086' ]

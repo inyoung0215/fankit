@@ -1,0 +1,38 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: order-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/fankit_order?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: fankit
+    password: fankit
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+  kafka:
+    bootstrap-servers: localhost:9092
+    consumer:
+      group-id: order-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.fankit.*"
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus

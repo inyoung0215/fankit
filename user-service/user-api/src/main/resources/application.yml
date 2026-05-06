@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/fankit_user?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Seoul
+    username: fankit
+    password: fankit
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    # 개발 단계에선 update — 운영 전환 시 validate + Flyway/Liquibase 마이그레이션으로 교체
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+
+# JWT 이중 토큰: Access 30분 / Refresh 7일
+jwt:
+  secret: ${JWT_SECRET:change-me-in-production-please-use-strong-secret-key-256bit}
+  access-token-expiration: 1800000
+  refresh-token-expiration: 604800000
