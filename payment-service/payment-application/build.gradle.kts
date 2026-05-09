@@ -6,6 +6,7 @@ dependencies {
     implementation(project(":common"))
     implementation(project(":payment-service:payment-domain"))
     implementation("org.springframework.boot:spring-boot-starter")
+    implementation("org.springframework:spring-tx")    // @Transactional
 
     // Resilience4j — Circuit Breaker (PG사 호출 보호)
     implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")

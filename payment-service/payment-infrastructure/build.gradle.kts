@@ -18,6 +18,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.redisson:redisson-spring-boot-starter:3.27.2")
 
+    // Resilience4j @CircuitBreaker 어노테이션 — MockKakaoPgClient에서 사용
+    implementation("io.github.resilience4j:resilience4j-spring-boot3:2.2.0")
+
     testImplementation("org.testcontainers:mysql")
     testImplementation("org.testcontainers:kafka")
     testImplementation("org.testcontainers:junit-jupiter")
