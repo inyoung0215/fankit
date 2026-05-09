@@ -312,6 +312,33 @@ erDiagram
     }
 ```
 
+### Order Service (MySQL)
+
+```mermaid
+erDiagram
+    orders ||--o{ order_items : "1:N"
+
+    orders {
+        BIGINT id PK
+        BIGINT user_id
+        INT total_amount
+        VARCHAR status
+        BIGINT payment_id
+        VARCHAR shipping_address
+        DATETIME created_at
+        DATETIME updated_at
+    }
+    order_items {
+        BIGINT order_id FK
+        VARCHAR goods_id
+        VARCHAR goods_name
+        INT quantity
+        INT unit_price
+    }
+```
+
+`order_items.goods_name`/`unit_price`는 주문 시점 스냅샷 — 굿즈 가격이 변해도 주문 금액은 보존.
+
 ### Goods Service (MongoDB)
 
 ```mermaid
@@ -356,6 +383,17 @@ erDiagram
 | GET | `/search?keyword=&category=` | Nori 형태소 검색 |
 | GET | `/popular?n=10` | Redis Sorted Set 기반 top-N |
 | POST | `/upload-url` | S3 Pre-signed URL 발급 |
+
+### Order (`/api/v1/orders`)
+
+| Method | Path | 설명 |
+|---|---|---|
+| POST | `/` | 주문 생성 (PAYMENT_PENDING 상태로 시작) |
+| GET | `/{id}` | 단건 조회 |
+| POST | `/{id}/confirm` | Saga 동기 RPC: PAYMENT_PENDING → PAID (멱등) |
+| POST | `/{id}/cancel` | Saga 보상: PAYMENT_PENDING/PAID → CANCELLED (멱등) |
+
+`payment.completed` / `payment.failed` Kafka 이벤트도 같은 도메인 액션으로 라우팅 (at-least-once 재전송 안전).
 
 ### Payment (`/api/v1/payments`)
 
@@ -476,7 +514,7 @@ fankit/
 | 1 | docker-compose 인프라 (MySQL/Mongo/Redis/Kafka/ES/Prometheus/Grafana) | ✅ |
 | 2 | User Service (signup/login/refresh + JWT Rotation) | ✅ |
 | 2 | Goods Service (Mongo + ES Nori + Redis Sorted Set + S3) | ✅ |
-| 2 | Order Service | ⬜ |
+| 2 | Order Service (상태 머신 + Kafka payment 이벤트 consumer + 멱등 처리) | ✅ |
 | 2 | Admin Service | ⬜ |
 | 3 | Payment Service (Saga + Idempotency + CB + Outbox + 분산 락) | ✅ |
 | 3 | Settlement Service (Spring Batch + Reconciliation) | ⬜ |
