@@ -8,16 +8,14 @@
 
 **FanKit**은 K-POP 팬아트 크리에이터가 굿즈를 등록·판매하고, 팬이 안전하게 결제·구매할 수 있는 **MSA 기반 이커머스 플랫폼**입니다.
 
-- **개발 목적**: 카카오페이 / 토스 / 당근마켓 이직용 포트폴리오 프로젝트
-- **개발자**: 백엔드 3년차, 강남·판교 연봉 6천+ 목표
-- **타겟 어필 포인트**: 결제 시스템(Saga, Idempotency, Circuit Breaker), 정산 배치(Spring Batch), MSA 설계(Hexagonal + DDD)
+- **포인트**: 결제 시스템(Saga, Idempotency, Circuit Breaker), 정산 배치(Spring Batch), MSA 설계(Hexagonal + DDD)
 
 ---
 
 ## 기술 스택
 
 ### Language & Framework
-- **Kotlin** (Java 대신 선택 — 카카오페이 코프링 트렌드)
+- **Kotlin**
 - **Spring Boot 3.x**
 - **Spring Cloud** (Gateway, Eureka, Config)
 - **Spring Data JPA + QueryDSL**
