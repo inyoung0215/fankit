@@ -1,0 +1,10 @@
+{
+  "analysis": {
+    "analyzer": {
+      "korean": {
+        "type": "nori",
+        "decompound_mode": "mixed"
+      }
+    }
+  }
+}

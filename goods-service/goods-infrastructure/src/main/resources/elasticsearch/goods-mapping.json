@@ -1,0 +1,11 @@
+{
+  "properties": {
+    "id": { "type": "keyword" },
+    "name": { "type": "text", "analyzer": "korean" },
+    "description": { "type": "text", "analyzer": "korean" },
+    "tags": { "type": "keyword" },
+    "category": { "type": "keyword" },
+    "creatorId": { "type": "long" },
+    "status": { "type": "keyword" }
+  }
+}
