@@ -11,11 +11,12 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update    # 개발 단계 — 운영 전환 시 validate + Flyway
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
+    open-in-view: false
   batch:
     jdbc:
       initialize-schema: always
@@ -33,6 +34,9 @@ spring:
 
 eureka:
   client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
     service-url:
       defaultZone: http://localhost:8761/eureka/
 
