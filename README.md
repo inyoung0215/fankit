@@ -244,6 +244,40 @@ MongoDB의 `$text`는 한국어 형태소 분석 미지원. "민호 키링"과 "
 
 객체 키 규약: `goods/{yyyy/MM/dd}/{creatorId}/{uuid}.{ext}` — 날짜 prefix로 라이프사이클 정책 적용 용이, UUID로 충돌 방지 + 원본 파일명 비노출.
 
+### 10. Spring Batch + Quartz (정산 배치)
+
+```mermaid
+flowchart LR
+    Quartz[Quartz Cron<br/>매일 02:00 KST]
+    Job[Settlement Job]
+    Step1[Step 1<br/>chunk=100]
+    Step2[Step 2<br/>Tasklet]
+
+    Quartz -->|trigger| Job
+    Job --> Step1
+    Step1 -->|next| Step2
+
+    subgraph "Step 1: chunk(100) 단위 트랜잭션"
+        Reader[Reader<br/>PaymentRecord<br/>settled=false 페이징]
+        Processor[Processor<br/>Commission 10% 계산]
+        Writer[Writer<br/>SettlementDetail INSERT<br/>+ settled=true UPDATE]
+        Reader --> Processor --> Writer
+    end
+
+    subgraph "Step 2: SQL Aggregate"
+        Tasklet[GROUP BY creator_id<br/>→ Settlement INSERT<br/>→ detail.settlement_id UPDATE]
+    end
+
+    Step1 -.-> Reader
+    Step2 -.-> Tasklet
+```
+
+**chunk=100 근거**: 너무 작으면 commit 오버헤드 증가, 너무 크면 실패 시 재시도 비용 증가. 100~1000이 일반적 sweet spot.
+
+**Quartz vs Spring `@Scheduled` 차이**: Quartz는 jobStore JDBC로 클러스터 환경에서도 단일 실행 보장 + history 추적 가능. 스케줄러 인스턴스가 여러 대여도 한 번만 트리거됨.
+
+**Reconciliation (대사)**: PG 정산 데이터 vs 내부 PaymentRecord를 paymentId로 outer-join 비교 → MATCHED / AMOUNT_MISMATCH / MISSING_INTERNAL / MISSING_PG 4가지로 분류 → 운영팀이 alert 받고 수동 개입.
+
 ---
 
 ## ERD
@@ -362,6 +396,55 @@ erDiagram
 
 `options`는 굿즈 카테고리별로 스키마가 다름 (포토카드: `[{name:"멤버", values:[...]}]`, 의류: `[{name:"사이즈", values:[...], additionalPrices:{...}}]`). RDB의 정형 스키마로 표현하기 부적합 → MongoDB의 document model이 자연스러운 fit.
 
+### Settlement Service (MySQL)
+
+```mermaid
+erDiagram
+    settlements ||--o{ settlement_details : "1:N"
+    payment_records ||..|| settlement_details : "paymentId 참조"
+
+    settlements {
+        BIGINT id PK
+        BIGINT creator_id
+        DATE period
+        BIGINT total_sales
+        BIGINT total_commission
+        BIGINT net_amount
+        VARCHAR status
+        DATETIME created_at
+        DATETIME updated_at
+    }
+    settlement_details {
+        BIGINT id PK
+        BIGINT settlement_id FK
+        BIGINT creator_id
+        BIGINT payment_id
+        VARCHAR goods_id
+        INT sales_amount
+        INT commission_amount
+        INT net_amount
+    }
+    payment_records {
+        BIGINT payment_id PK
+        BIGINT creator_id
+        VARCHAR goods_id
+        INT amount
+        DATETIME approved_at
+        BOOLEAN settled
+    }
+    reconciliations {
+        BIGINT id PK
+        DATE period
+        BIGINT payment_id
+        INT internal_amount
+        INT pg_amount
+        VARCHAR status
+        DATETIME checked_at
+    }
+```
+
+`(creator_id, period)`는 `settlements`의 unique 제약 — 같은 일자 중복 정산 방지. `payment_records.settled`는 배치 멱등성 보장 (이미 처리한 결제는 다음 실행에서 자동 skip).
+
 ---
 
 ## API 엔드포인트
@@ -402,6 +485,17 @@ erDiagram
 | POST | `/` | `X-Idempotency-Key` | 결제 생성 (Saga 실행) |
 | GET | `/{id}` | - | 결제 단건 조회 |
 | POST | `/{id}/refund` | - | 환불 |
+
+### Settlement (`/api/v1/settlements`)
+
+| Method | Path | 설명 |
+|---|---|---|
+| POST | `/run?period=YYYY-MM-DD` | Spring Batch 수동 트리거 (Quartz는 매일 02:00 자동) |
+| POST | `/reconciliation?period=YYYY-MM-DD` | 대사 실행 (PG vs 내부 비교) |
+| GET | `/by-creator/{creatorId}` | 크리에이터별 정산 목록 |
+| GET | `/{id}/details` | 정산 명세 (개별 결제 단위) |
+| GET | `/{id}/csv` | 정산 명세 CSV 다운로드 |
+| POST | `/payment-records` | 시연용: PaymentRecord 직접 INSERT (실전엔 Kafka 컨슈머가 적재) |
 
 ---
 
@@ -517,7 +611,7 @@ fankit/
 | 2 | Order Service (상태 머신 + Kafka payment 이벤트 consumer + 멱등 처리) | ✅ |
 | 2 | Admin Service | ⬜ |
 | 3 | Payment Service (Saga + Idempotency + CB + Outbox + 분산 락) | ✅ |
-| 3 | Settlement Service (Spring Batch + Reconciliation) | ⬜ |
+| 3 | Settlement Service (Spring Batch chunk(100) + Quartz + Reconciliation) | ✅ |
 | 4 | Testcontainers 통합 테스트 | ⬜ |
 | 4 | GitHub Actions CI/CD | ⬜ |
 | 4 | Eureka Server + Spring Cloud Config | ⬜ |
