@@ -497,6 +497,16 @@ erDiagram
 | GET | `/{id}/csv` | 정산 명세 CSV 다운로드 |
 | POST | `/payment-records` | 시연용: PaymentRecord 직접 INSERT (실전엔 Kafka 컨슈머가 적재) |
 
+### Admin (`/api/v1/admin`)
+
+| Method | Path | 설명 |
+|---|---|---|
+| POST | `/goods/{goodsId}/approve` | 굿즈 승인 (Goods Service에 위임 + 결정 이력 기록) |
+| POST | `/goods/{goodsId}/reject` | 굿즈 반려 (reason 필수) |
+| POST | `/users/{userId}/promote-to-creator` | USER → CREATOR 권한 전환 |
+| GET | `/decisions?type=&page=&size=` | 결정 이력 (audit trail) |
+| GET | `/statistics` | type별 approved/rejected 카운트 집계 |
+
 ---
 
 ## 기술 스택
@@ -609,7 +619,7 @@ fankit/
 | 2 | User Service (signup/login/refresh + JWT Rotation) | ✅ |
 | 2 | Goods Service (Mongo + ES Nori + Redis Sorted Set + S3) | ✅ |
 | 2 | Order Service (상태 머신 + Kafka payment 이벤트 consumer + 멱등 처리) | ✅ |
-| 2 | Admin Service | ⬜ |
+| 2 | Admin Service (굿즈 승인/반려 + 크리에이터 전환 + 결정 이력 + 통계) | ✅ |
 | 3 | Payment Service (Saga + Idempotency + CB + Outbox + 분산 락) | ✅ |
 | 3 | Settlement Service (Spring Batch chunk(100) + Quartz + Reconciliation) | ✅ |
 | 4 | Testcontainers 통합 테스트 | ⬜ |
