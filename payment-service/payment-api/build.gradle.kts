@@ -24,6 +24,7 @@ dependencies {
     testImplementation("org.testcontainers:junit-jupiter")
     testImplementation("org.springframework.kafka:spring-kafka-test")
     testImplementation("org.awaitility:awaitility:4.2.1")  // Outbox 비동기 발행 대기
+    testImplementation("com.ninja-squad:springmockk:4.0.2")  // @MockkBean — Spring 컨텍스트의 빈을 mockk으로 교체
     // Payment 모듈 전체가 컨텍스트에 로드되므로 인프라/JPA 어댑터까지 의존
     testImplementation(project(":payment-service:payment-infrastructure"))
 }
