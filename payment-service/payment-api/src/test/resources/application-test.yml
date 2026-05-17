@@ -1,0 +1,42 @@
+# Integration test profile
+# datasource / redis / kafka URL은 @DynamicPropertySource로 Testcontainers가 주입
+# 여기서는 테스트 공통 동작만 정의
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop   # 매 테스트 클래스마다 깔끔한 스키마
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+    open-in-view: false
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer  # Outbox는 이미 JSON 문자열로 직렬화됨
+      acks: all
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+# Resilience4j — 통합 테스트에서는 happy path 검증 위주이므로 OPEN 안 되게 임계값 완화
+resilience4j:
+  circuitbreaker:
+    instances:
+      pgClient:
+        failure-rate-threshold: 99
+        sliding-window-size: 100
+        minimum-number-of-calls: 100
+
+logging:
+  level:
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.hibernate.SQL: WARN
+    org.testcontainers: WARN
+    com.fankit.payment: INFO
