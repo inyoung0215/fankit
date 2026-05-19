@@ -1,0 +1,49 @@
+# Settlement Service integration test profile
+# datasource/redis/kafka는 @DynamicPropertySource로 Testcontainers가 주입
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.MySQL8Dialect
+    show-sql: false
+    open-in-view: false
+  batch:
+    jdbc:
+      initialize-schema: always
+    job:
+      enabled: false   # JobLauncherTestUtils가 명시적으로 실행
+  # Quartz는 통합 테스트에서 자동 스케줄링 불필요 — JobStore도 메모리로
+  quartz:
+    job-store-type: memory
+    auto-startup: false
+  kafka:
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+eureka:
+  client:
+    enabled: false
+    register-with-eureka: false
+    fetch-registry: false
+
+settlement:
+  batch:
+    chunk-size: 100
+  commission:
+    rate: 0.10
+  schedule:
+    cron: "0 0 2 * * ?"   # 통합 테스트에선 트리거되지 않음 (Quartz auto-startup=false)
+
+logging:
+  level:
+    org.springframework.batch: WARN
+    org.springframework.kafka: WARN
+    org.apache.kafka: WARN
+    org.hibernate.SQL: WARN
+    org.testcontainers: WARN
+    com.fankit.settlement: INFO
