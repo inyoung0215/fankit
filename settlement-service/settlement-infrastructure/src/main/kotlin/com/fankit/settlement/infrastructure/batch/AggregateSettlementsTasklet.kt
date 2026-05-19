@@ -7,6 +7,7 @@ import com.fankit.settlement.infrastructure.persistence.SettlementJpaEntity
 import com.fankit.settlement.infrastructure.persistence.SettlementJpaRepository
 import jakarta.persistence.EntityManager
 import org.springframework.batch.core.StepContribution
+import org.springframework.batch.core.configuration.annotation.StepScope
 import org.springframework.batch.core.scope.context.ChunkContext
 import org.springframework.batch.core.step.tasklet.Tasklet
 import org.springframework.batch.repeat.RepeatStatus
@@ -18,7 +19,11 @@ import java.time.LocalDate
 // → settlements row INSERT + settlement_details.settlement_id 채워넣기
 //
 // JPA bulk update query 사용. 단일 트랜잭션 (Spring Batch가 Tasklet에 트랜잭션 자동 적용)
+//
+// @StepScope 필수: @Value("#{jobParameters[...]}")로 jobParameters에 접근하려면
+// Step 실행 컨텍스트가 필요. (SettlementItemReader도 같은 이유로 @StepScope)
 @Component
+@StepScope
 class AggregateSettlementsTasklet(
     private val entityManager: EntityManager,
     private val settlementJpaRepository: SettlementJpaRepository,

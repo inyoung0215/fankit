@@ -15,11 +15,14 @@ class PaymentRecordRepositoryAdapter(
         jpaRepository.save(PaymentRecordJpaEntity.fromDomain(record)).toDomain()
 
     override fun findUnsettledBetween(from: Instant, to: Instant, limit: Int, offset: Int): List<PaymentRecord> {
-        // PageRequest의 page = offset / limit (cleanly divided not required for first page)
         val page = if (limit > 0) offset / limit else 0
         return jpaRepository.findUnsettledBetween(from, to, PageRequest.of(page, maxOf(limit, 1)))
             .map { it.toDomain() }
     }
+
+    override fun findUnsettledAfter(from: Instant, to: Instant, afterPaymentId: Long, limit: Int): List<PaymentRecord> =
+        jpaRepository.findUnsettledAfter(from, to, afterPaymentId, PageRequest.of(0, maxOf(limit, 1)))
+            .map { it.toDomain() }
 
     override fun countUnsettledBetween(from: Instant, to: Instant): Long =
         jpaRepository.countUnsettledBetween(from, to)

@@ -22,6 +22,21 @@ interface PaymentRecordJpaRepository : JpaRepository<PaymentRecordJpaEntity, Lon
 
     @Query(
         """
+        SELECT p FROM PaymentRecordJpaEntity p
+        WHERE p.settled = false
+          AND p.approvedAt >= :from AND p.approvedAt < :to
+          AND p.paymentId > :afterPaymentId
+        ORDER BY p.paymentId ASC
+        """
+    )
+    fun findUnsettledAfter(
+        @Param("from") from: Instant, @Param("to") to: Instant,
+        @Param("afterPaymentId") afterPaymentId: Long,
+        pageable: org.springframework.data.domain.Pageable,
+    ): List<PaymentRecordJpaEntity>
+
+    @Query(
+        """
         SELECT COUNT(p) FROM PaymentRecordJpaEntity p
         WHERE p.settled = false AND p.approvedAt >= :from AND p.approvedAt < :to
         """
